@@ -2,7 +2,7 @@ const express = require('express');
 const { persons } = require('./data');
 const app = express();
 const morgan = require('morgan');
-const PORT = 3000;
+const PORT = process.env.PORT || 3001
 
 app.use(express.json());
 
