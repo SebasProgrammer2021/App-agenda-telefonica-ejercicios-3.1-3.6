@@ -1,0 +1,21 @@
+{
+  "name": "ejercicios-3.1-3.6",
+  "version": "1.0.0",
+  "description": "Backend de la Agenda Telefónica con Express",
+  "license": "ISC",
+  "author": "Sebastián Valencia",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "morgan": "^1.10.1"
+  }
+}
