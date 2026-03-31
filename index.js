@@ -1,8 +1,10 @@
+require('dotenv').config()
 const express = require('express');
 const { persons } = require('./data');
 const app = express();
 const morgan = require('morgan');
 const PORT = process.env.PORT || 3001
+const Person = require('./models/person');
 
 app.use(express.json());
 
@@ -23,7 +25,18 @@ app.get('/', (req, res) => {
 
 // ejercicio 3.1
 app.get('/api/persons', (req, res) => {
-  res.json(persons);
+  // FORMA 1 - con datos estáticos
+  // res.json(persons);
+
+  // FORMA 2 - con datos de MongoDB
+  Person.find({})
+    .then(persons => {
+      res.json(persons);
+    })
+    .catch(error => {
+      console.error('Error fetching persons from MongoDB:', error.message);
+      res.status(500).json({ error: 'Internal server error' });
+    });
 });
 
 // ejercicio 3.2
