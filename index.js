@@ -5,6 +5,7 @@ const app = express();
 const morgan = require('morgan');
 const PORT = process.env.PORT || 3001
 const Person = require('./models/person');
+const errorHandler = require('./middlewares/errorhandler');
 
 app.use(express.json());
 
@@ -24,7 +25,7 @@ app.get('/', (req, res) => {
 });
 
 // ejercicio 3.1
-app.get('/api/persons', (req, res) => {
+app.get('/api/persons', (req, res, next) => {
   // FORMA 1 - con datos estáticos
   // res.json(persons);
 
@@ -33,46 +34,79 @@ app.get('/api/persons', (req, res) => {
     .then(persons => {
       res.json(persons);
     })
-    .catch(error => {
-      console.error('Error fetching persons from MongoDB:', error.message);
-      res.status(500).json({ error: 'Internal server error' });
-    });
+    // .catch(error => {
+    //   console.error('Error fetching persons from MongoDB:', error.message);
+    //   res.status(500).json({ error: 'Internal server error' });
+    // });
+    .catch(error => next(error)); // Pasar el error al middleware de manejo de errores
 });
 
 // ejercicio 3.2
-app.get('/info', (req, res) => {
-  const totalPersons = persons.length;
-  const currentDate = new Date();
-  res.send(`Phonebook has info for ${totalPersons} people<br>${currentDate}`);
+app.get('/info', (req, res, next) => {
+  // const totalPersons = persons.length;
+  // const currentDate = new Date();
+  // res.send(`Phonebook has info for ${totalPersons} people<br>${currentDate}`);
+
+  // FORMA 2 - con datos de MongoDB
+  // countdocuments es un método de Mongoose que se utiliza para contar el número de documentos en una colección que coinciden con una consulta específica. En este caso, se está utilizando Person.countDocuments({}) para contar todos los documentos en la colección de personas, ya que se le pasa un objeto vacío como consulta, lo que significa que no se aplican filtros y se cuentan todos los documentos disponibles.
+  Person.countDocuments({})
+    .then(totalPersons => {
+      const currentDate = new Date();
+      res.send(`Phonebook has info for ${totalPersons} people<br>${currentDate}`);
+    })
+    .catch(error => next(error)); // Pasar el error al middleware de manejo de errores
 });
 
 // ejercicio 3.3
-app.get('/api/persons/:id', (req, res) => {
-  const personId = Number(req.params.id);
-  const targetPerson = persons.find(person => person.id === personId);
+app.get('/api/persons/:id', (req, res, next) => {
+  // const personId = Number(req.params.id);
+  // const targetPerson = persons.find(person => person.id === personId);
 
-  if (!targetPerson) {
-    return res.status(404).json({ error: 'Person not found' });
-  }
+  // if (!targetPerson) {
+  //   return res.status(404).json({ error: 'Person not found' });
+  // }
 
-  res.json(targetPerson);
+  // res.json(targetPerson);
+
+  // FORMA 2 - con datos de MongoDB
+  const personId = req.params.id;
+  Person.findById(personId)
+    .then(targetPerson => {
+      if (!targetPerson) {
+        return res.status(404).json({ error: 'Person not found' });
+      }
+      res.json(targetPerson);
+    })
+    .catch(error => next(error));
 });
 
 // ejercicio 3.4
-app.delete('/api/persons/:id', (req, res) => {
-  const personId = Number(req.params.id);
-  const index = persons.findIndex(person => person.id === personId); // Encontrar el índice de la persona a eliminar, findIndex devuelve -1 si no encuentra el elemento
+app.delete('/api/persons/:id', (req, res, next) => {
+  // const personId = Number(req.params.id);
+  // const index = persons.findIndex(person => person.id === personId); // Encontrar el índice de la persona a eliminar, findIndex devuelve -1 si no encuentra el elemento
 
-  if (index === -1) {
-    return res.status(404).json({ error: 'Person not found' });
-  }
+  // if (index === -1) {
+  //   return res.status(404).json({ error: 'Person not found' });
+  // }
 
-  persons.splice(index, 1); // splice elimina el elemento del array en el índice encontrado, el segundo argumento indica cuántos elementos eliminar (en este caso, solo uno)
-  res.status(204).end();
+  // persons.splice(index, 1); // splice elimina el elemento del array en el índice encontrado, el segundo argumento indica cuántos elementos eliminar (en este caso, solo uno)
+  // res.status(204).end();
+
+
+  // FORMA 2 - con datos de MongoDB
+  const personId = req.params.id;
+  Person.findByIdAndDelete(personId)
+    .then(deletedPerson => {
+      if (!deletedPerson) {
+        return res.status(404).json({ error: 'Person not found' });
+      }
+      res.status(204).end();
+    })
+    .catch(error => next(error)); // Pasar el error al middleware de manejo de errores
 });
 
-// ejercicio 3.5 
-app.post('/api/persons', (req, res) => {
+// ejercicio 3.5  agregar una persona 
+app.post('/api/persons', async (req, res, next) => {
   const { name, number } = req.body;
 
   if (!name || !number) {
@@ -80,7 +114,11 @@ app.post('/api/persons', (req, res) => {
   }
 
   // validar si el nombre ya existe
-  const isNameRegistered = persons.some(person => person.name === name); // some devuelve true si al menos un elemento del array cumple con la condición, en este caso, si el nombre ya existe en el array de personas
+  // FORMA 1 - con datos estáticos
+  // const isNameRegistered = persons.some(person => person.name === name); // some devuelve true si al menos un elemento del array cumple con la condición, en este caso, si el nombre ya existe en el array de personas
+
+  // FORMA 2 - con datos de MongoDB
+  const isNameRegistered = await Person.exists({ name }); // valida si una persona esta registrada
 
   if (isNameRegistered) {
     return res.status(400).json({ error: 'Name must be unique' });
@@ -98,10 +136,28 @@ app.post('/api/persons', (req, res) => {
     number
   };
 
-  persons.push(newPerson); // Agregar la nueva persona al array de personas
+  // FORMA 1 - con datos estáticos
+  // persons.push(newPerson); // Agregar la nueva persona al array de personas
 
-  res.status(201).json({ message: 'Person added successfully', person: newPerson });
+  // res.status(201).json({ message: 'Person added successfully', person: newPerson });
+
+  // FORMA 2 - con datos de MongoDB
+  const person = new Person(newPerson);
+  person.save()
+    .then(savedPerson => {
+      res.status(201).json({ message: 'Persona agregada exitosamente', person: savedPerson });
+    })
+    // forma 1 - con datos estáticos
+    // .catch(error => {
+    //   console.error('Error guardando persona en MongoDB:', error.message);
+    //   res.status(500).json({ error: 'Internal server error' });
+    // });
+    //forma 2 middleware de manejo de errores
+    .catch(error => next(error)); // Pasar el error al middleware de manejo de errores
+
 });
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
