@@ -1,5 +1,5 @@
 const errorHandler = (error, request, response, next) => {
-  console.error(error.message)
+  console.error("-->error:", error.message)
 
   // si el error es un CastError, significa que el ID proporcionado no es válido, por ejemplo, si se intenta buscar una nota con un ID que no tiene el formato correcto de MongoDB (un ObjectId), se lanzará un CastError. En este caso, se responde con un código de estado 400 (Bad Request) y un mensaje de error indicando que el ID de la nota es inválido o mal formado.
   if (error.name === 'CastError') {
