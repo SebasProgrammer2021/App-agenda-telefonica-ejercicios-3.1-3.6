@@ -120,8 +120,11 @@ app.post('/api/persons', async (req, res, next) => {
   // FORMA 2 - con datos de MongoDB
   const isNameRegistered = await Person.exists({ name }); // valida si una persona esta registrada
 
+  // si el nombre ya existe se actualizara el numero de telefono asociado
   if (isNameRegistered) {
-    return res.status(400).json({ error: 'Name must be unique' });
+    // Actualizar el número de teléfono de la persona existente
+    const updatedPerson = await Person.findOneAndUpdate({ name }, { number }, { new: true }); // findOneAndUpdate busca un documento que coincida con la condición (en este caso, el nombre) y lo actualiza con los nuevos datos (en este caso, el número). El tercer argumento { new: true } hace que el método devuelva el documento actualizado en lugar del original.
+    return res.status(200).json({ message: 'Persona actualizada exitosamente', person: updatedPerson });
   }
 
   const validateNumber = /^3\d{9}$/.test(String(number).trim()); // valida que el número comience con 3 y tenga exactamente 10 dígitos, el método test devuelve true si el número cumple con el formato, de lo contrario devuelve false. El método trim se utiliza para eliminar espacios en blanco al inicio y al final del número, asegurando que la validación sea precisa incluso si el usuario ingresa espacios adicionales.
@@ -156,6 +159,24 @@ app.post('/api/persons', async (req, res, next) => {
     .catch(error => next(error)); // Pasar el error al middleware de manejo de errores
 
 });
+
+// actualizar una persona por id
+app.put('/api/persons/:id', (request, response, next) => {
+  const body = request.body
+
+  const person = {
+    name: body.name,
+    number: body.number,
+  }
+
+  //De forma predeterminada, el parámetro updatedPerson del controlador de eventos recibe el documento original sin las modificaciones. Agregamos el parámetro opcional { new: true }, que hará que nuestro controlador de eventos sea llamado con el nuevo documento modificado en lugar del original.
+  Person.findByIdAndUpdate(request.params.id, person, { new: true })
+    .then(updatedPerson => {
+      response.json(updatedPerson)
+    })
+    .catch(error => next(error))
+})
+
 
 app.use(errorHandler);
 
